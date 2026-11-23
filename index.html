@@ -1619,10 +1619,17 @@ function localAI(text){
   if(/yaxshi|zor|top|лучш|sovga/.test(t)) o.sort='rate';
   if(!o.category) o.query = text;
   const greet = /^(salom|assalom|привет|hi|hello)/.test(t);
+  const smalltalk = [
+    [/(rahmat|raxmat|spasibo|спасибо|thanks|thank you)/, "Arzimaydi! Yana biror narsa kerak bo'lsa, yozing 😊"],
+    [/(qalaysiz|qalesan|qalaysan|yaxshimisiz|ahvol|как дела|how are you|nima gap)/, "Rahmat, yaxshi! Sizga qanday mahsulot topib beray? Toifa yoki byudjetingizni yozing."],
+    [/(kimsan|kimsiz|isming|ismingiz|ты кто|who are you|nima qila olasan|nima qilasan)/, "Men Market AI — xarid yordamchisiman. Mahsulot topaman, narxlarni solishtiraman va byudjetingizga mosini tavsiya qilaman."],
+    [/(xayr|hayr|poka|пока|goodbye|bye)/, "Xayr! Xaridingiz muborak bo'lsin 👋"],
+  ];
+  for(const [re,ans] of smalltalk){ if(re.test(t) && !o.category && !o.num) return {reply:ans,ids:[]}; }
   let list = findProducts({...o,limit:4});
   const hasFilter = o.min_price || o.max_price || o.only_sale || o.only_installment || o.sort;
   if(!list.length && o.query && hasFilter){ delete o.query; list = findProducts({...o,limit:4}); }
-  if(greet && !list.length) return {reply:"Salom! Qanday mahsulot qidiryapsiz? Toifa yoki byudjetingizni yozing, masalan: **\"300 ming so'mgacha quloqchin\"**.",ids:[]};
+  if(greet && !o.category && !o.num && !hasFilter) return {reply:"Salom! Qanday mahsulot qidiryapsiz? Toifa yoki byudjetingizni yozing, masalan: **\"300 ming so'mgacha quloqchin\"**.",ids:[]};
   if(!list.length) return {reply:"Afsuski, bunday mahsulot topilmadi. Boshqa so'z bilan yoki boshqa narx oralig'ida urinib ko'ring. Toifalar: "+allCats().map(c=>c.name).join(', ')+'.',ids:[]};
   const top = list[0];
   return {reply:`${list.length} ta mos variant topdim. Eng yaxshisi — **${top.t}**, ${money(top.p)} so'm${top.inst?` (yoki oyiga ${money(top.inst)} so'mdan, 12 oy)`:''}. Quyida qolganlari ham bor:`, ids:list.map(x=>x.id)};
@@ -1664,6 +1671,7 @@ async function aiSend(text){
     if(!aiSample && AI_ENDPOINT && aiLive){
       try{ res = await endpointAI(aiHist); }
       catch(e){
+        console.warn('AI endpoint xatosi:', e && e.status, e && e.message);
         if(e && e.status===429){ const er = new Error('rl'); er.code='rate_limited'; throw er; }
         aiLive = false; aiStatus(); res = localAI(text);   // server/kalit yo'q: demo rejim
       }
